@@ -1,7 +1,7 @@
 <script setup>
 import HeaderPanel from "@/components/layouts/HeaderPanel";
 import {useRouter} from 'vue-router'
-import {onActivated, ref} from "vue";
+import {computed, onActivated, ref} from "vue";
 import {socket} from "@/main";
 import axios from "axios";
 const router = useRouter()
@@ -9,6 +9,15 @@ const online = ref(0)
 const watch = ref(0)
 const coinUser = ref(0)
 const idUser = ref()
+const timeCountDown = ref((1000 * 60) * 2 )
+const minute = computed(()=>{
+  const minute = Math.floor(timeCountDown.value / 1000 / 60 % 60)
+  return minute < 9 ? '0' + minute : minute
+})
+const second = computed(()=>{
+  const second = Math.floor(timeCountDown.value / 1000 % 60)
+  return second < 9 ? '0' + second : second
+})
 const logOut = () => {
   sessionStorage.removeItem('id_user')
   location.reload()
@@ -20,7 +29,6 @@ const updateWatch = () => {
 }
 const updateOnline = () => {
   socket.on('reportOnline', amount => {
-    console.log(amount,1)
     online.value = amount
   })
 }
@@ -84,9 +92,12 @@ onActivated(()=>{
     </div>
   </header-panel>
   <div class="content">
-    <div style="display: flex;justify-content: center; gap:20px;margin-top:20px;font-weight: 700">
+    <div style="display:flex; gap:20px; margin-top:20px; justify-content: center">
       <span>Số người đang online: {{online}}</span>
       <span>Khách đang xem: {{watch}}</span>
+    </div>
+    <div>
+      <p><span v-if="minute > 0">{{minute}}:</span><span>{{second}}</span></p>
     </div>
   </div>
 </template>
@@ -97,6 +108,10 @@ button{
   border-radius: 10px;
   background-color: bisque;
   color: darkred;
+  font-weight: 700;
+}
+.content{
+  text-align: center;
   font-weight: 700;
 }
 </style>
