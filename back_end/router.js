@@ -31,4 +31,5 @@ router.post('/auth/get_coin/:id', (req, res) => {
         res.status(200).json(user.coin);
     }).catch((error) => console.log(error));
 });
+
 module.exports = router

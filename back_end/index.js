@@ -2,6 +2,7 @@ const cors = require('cors')
 const mongoose = require('mongoose')
 const bodyParser = require('body-parser')
 const app = require('express')()
+const jsonParser = bodyParser.json();
 const port = 3000
 
 mongoose.connect('mongodb://localhost:27017/vxmm')
@@ -12,14 +13,18 @@ const router = require('./router')
 db.once('open', function(){
     console.log("Connected to MongoDB successfully!");
 });
-const jsonParser = bodyParser.json();
 
 app.use(jsonParser);
 app.use(cors())
 app.use('/', router);
 
 const http = require('http').Server(app);
-const io = require('socket.io')(http);
+const io = require("socket.io")(http, {
+    cors: {
+        origin: "http://localhost:8080",
+        methods: ["GET", "POST"]
+    }
+});
 let online = 0
 let watch = 0
 const STATE = {
