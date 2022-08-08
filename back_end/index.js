@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const cors = require('cors')
 const bodyParser = require('body-parser')
 const app = require('express')()
 const jsonParser = bodyParser.json();
@@ -12,15 +13,16 @@ const router = require('./router')
 db.once('open', function(){
     console.log("Connected to MongoDB successfully!");
 });
-
+app.use(cors())
 app.use(jsonParser);
 app.use('/', router);
 
-const http = require('http').Server(app);
-const io = require("socket.io")(http, {
+const server = app.listen(port  )
+
+const io = require('socket.io')(server, {
     cors: {
         origin: "http://localhost:8080",
-        methods: ["GET", "POST"]
+        methods: ["GET", "POST", "PUT"]
     }
 });
 let online = 0
@@ -37,10 +39,11 @@ io.on('connection', (socket) => {
     socket.emit('reportWatch',watch)
     socket.broadcast.emit('reportWatch',watch)
 
-    socket.on('signIn', () => {
+    socket.on('signIn', id => {
         for (let i = 0; i< listConnect.length; i++){
             if (listConnect[i].id === socket.id){
                 listConnect[i].state = STATE.PLAYER
+                listConnect[i].idUser = id
             }
         }
         watch -=1
@@ -68,8 +71,3 @@ io.on('connection', (socket) => {
         }
     });
 });
-
-http.listen(port, () => {
-    console.log('listening on port:3000');
-});
-

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router()
 const user_repository = require('./repositories/user_repository')
-
+const season_repository = require('./repositories/season_repository')
 router.post('/auth/sign_up', (req, res) => {
     const newUser = req.body;
     user_repository.create(newUser)
@@ -30,6 +30,12 @@ router.post('/auth/get_coin/:id', (req, res) => {
     user_repository.getCoin(id).then((user) => {
         res.status(200).json(user.coin);
     }).catch((error) => console.log(error));
+});
+
+router.get('/season/checking', (req, res) => {
+    season_repository.findSeasonPlaying()
+        .then(obj => {res.status(200).json(obj)})
+        .catch((error) => console.log(error));
 });
 
 module.exports = router

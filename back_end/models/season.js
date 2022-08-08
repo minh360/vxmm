@@ -3,6 +3,7 @@ const { Schema } = mongoose;
 const seasonSchema = new Schema({
     season: Number,
     timeBegin: Date,
+    listJoin: Array,
     state: Number,
     coinWin: Number,
     nameWin: String

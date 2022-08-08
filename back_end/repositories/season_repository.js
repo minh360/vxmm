@@ -10,6 +10,7 @@ class SeasonRepository {
         const newSeason = {
             season: this.countDocument() + 1,
             timeBegin: object.time,
+            listJoin: object.listJoin,
             state: STATE_SEASON.PLAYING,
             coinWin: object.coin,
             nameWin: object.name
@@ -20,6 +21,9 @@ class SeasonRepository {
     }
     countDocument(){
         return this.model.countDocuments()
+    }
+    findSeasonPlaying(){
+        return this.model.findOne({state: STATE_SEASON.PLAYING})
     }
     findBySeason(season){
         return this.model.findOne({season: season})

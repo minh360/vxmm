@@ -5,7 +5,7 @@ const router = useRouter()
 
 <template>
   <div class="header">
-    <span style="text-transform: uppercase" class="clickable" @click="router.push('/')">Vòng quay may mắn</span>
+    <span style="text-transform: uppercase" class="clickable mobile" @click="router.push('/')">Vòng quay may mắn</span>
     <slot />
   </div>
 </template>
@@ -20,5 +20,13 @@ const router = useRouter()
   padding: 0 10px;
   color: white;
   font-weight: 700
+}
+@media screen and (max-width: 450px){
+  .header{
+    justify-content: flex-end;
+    .mobile{
+      display: none;
+    }
+  }
 }
 </style>
