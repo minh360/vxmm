@@ -1,15 +1,19 @@
 <script setup>
 import HeaderPanel from "@/components/layouts/HeaderPanel";
 import {useRouter} from 'vue-router'
-import {computed, onActivated, ref} from "vue";
+import {computed, onActivated, ref, watch} from "vue";
 import {socket} from "@/main";
-import axios from "axios";
-// import dayjs from "dayjs"
+import {joinSeason, updateCoin, checkSeasonPlaying, getUserName} from "../../../back_end/api";
+import GuidePanel from "@/components/GuidePanel";
+import dayjs from "dayjs"
 const router = useRouter()
-const online = ref(0)
-const watch = ref(0)
+const onlineUser = ref(0)
+const watchUser = ref(0)
 const message = ref('')
 
+let seasonAfter
+
+const coinInput = ref('')
 const coinUser = ref(0)
 const countUserJoin = ref(0)
 const coinWin = ref(0)
@@ -18,15 +22,18 @@ const lastUserWin = ref('')
 const lastCoinWin = ref(0)
 const lastCoinJoin = ref(0)
 
-const idUser = ref()
+const idUser = ref('')
+const userName = ref('')
 
-const timeCountDown = ref((1000 * 60) * 2 )
+let countDown
+const timeCountDownMilli = ref(0)
+
 const minute = computed(()=>{
-  const minute = Math.floor(timeCountDown.value / 1000 / 60 % 60)
+  const minute = Math.floor(timeCountDownMilli.value / 1000 / 60 % 60)
   return minute < 9 ? '0' + minute : minute
 })
 const second = computed(()=>{
-  const second = Math.floor(timeCountDown.value / 1000 % 60)
+  const second = Math.floor(timeCountDownMilli.value / 1000 % 60)
   return second < 9 ? '0' + second : second
 })
 const logOut = () => {
@@ -35,12 +42,12 @@ const logOut = () => {
 }
 const updateWatch = () => {
   socket.on('reportWatch', amount => {
-    watch.value = amount
+    watchUser.value = amount
   })
 }
 const updateOnline = () => {
   socket.on('reportOnline', amount => {
-    online.value = amount
+    onlineUser.value = amount
   })
 }
 const input = ref(false)
@@ -58,50 +65,71 @@ const format = number => {
   const len = number.toString().length
   for (let i = 1; i <= len; i++ ) {
     result = number.toString()[len - i] + result
-    if (i % 3 === 0 && i !== 0) {
+    if (i % 3 === 0 && i !== len) {
       result = ',' + result
     }
   }
   return result
 }
-// const updateTime = async () => {
-//   await axios.request({
-//     method: "GET",
-//     url: "http://localhost:3000/season/checking",
-//     headers: {
-//       'Authorization': 'token'
-//     }
-//   })
-//       .then((season) => {
-//         timeCountDown.value = dayjs(new Date()) - dayjs(season.data.begin)
-//       })
-// }
-const updateCoin = async () => {
-  if(idUser.value){
-    await axios.request({
-      method: "POST",
-      url: "http://localhost:3000/auth/get_coin/" + idUser.value,
-      headers: {
-        'Authorization': 'token'
-      },
-      timeout: 3000
-    })
-        .then((coin) => {
-          coinUser.value = coin.data
-        })
-  }
+const updateTimeClient = async timeBegin => {
+  timeCountDownMilli.value = dayjs(new Date()) - dayjs(timeBegin).add(2, 'minute')
+  console.log(timeCountDownMilli.value)
+  countDown = setInterval(() => timeCountDownMilli.value - 1000, 1000)
 }
-const percentWin = ref(25)
+watch(timeCountDownMilli,  (newValue) => {
+  if(newValue <= 0){
+    clearInterval(countDown)
+  }
+  else if(newValue % 5 === 0){
+    clearInterval(countDown)
+    checkSeasonGoing()
+  }
+})
+const updateCoinUser = async () => {
+  if(idUser.value)
+    await updateCoin(idUser.value).then(coin => {
+      coinUser.value = coin.data
+    })
+}
+const percentWin = ref(100)
 const stylePercent = computed(() =>{
   return {
     'backgroundColor': 'red',
     'width': percentWin.value + '%',
     'height': "25px",
-    'borderRadius': '25px 0 0 25px',
+    'borderRadius': percentWin.value === 100? '25px' : '25px 0 0 25px',
     'position': 'relative',
     'transition': 'width 1s'
   }
 })
+
+const checkSeasonGoing = async () => {
+  await checkSeasonPlaying ()
+      .then(season => {
+        if(typeof season.data === "number" ){
+          timeCountDownMilli.value = 1000 * 60 * 2
+          seasonAfter = season.data
+        }
+        else
+          updateTimeClient(season.data.timeBegin)
+      })
+}
+const joinSeasonClient = async () => {
+  console.log(userName.value)
+  const data = {
+    idUser: idUser.value,
+    season: seasonAfter,
+    userName: userName.value,
+    coinBefore: coinUser.value,
+    coinUsed: coinInput.value,
+    coinAfter: coinUser.value - coinInput.value
+  }
+  await joinSeason (data)
+      .then(()=> {
+        updateCoinUser()
+        // socket.emit('join',coinInput)
+      })
+}
 socket.on('connect', () => {
   updateOnline()
   updateWatch()
@@ -110,12 +138,20 @@ socket.on('connect', () => {
       socket.emit('disconnectWatch')
   })
 })
+const getUserNameClient = async () => {
+  await getUserName(idUser.value)
+      .then(user => {
+        userName.value = user.data.userName
+      })
+}
 onActivated(()=>{
-  message.value = 'Chào mừng cô bác với trò giải trí này :)))'
+  message.value = 'Chào mừng cô bác đến với trò giải trí này :)))'
+  checkSeasonGoing()
   if(sessionStorage.getItem('id_user')){
     idUser.value = sessionStorage.getItem('id_user')
+    getUserNameClient()
     socket.emit('signIn',idUser.value)
-    updateCoin()
+    updateCoinUser()
   }
 })
 </script>
@@ -138,8 +174,8 @@ onActivated(()=>{
   <div class="content">
     <marquee>{{message}}</marquee>
     <div style="display:flex; gap:20px; margin:10px 0; justify-content: center">
-      <span>Số người đang online: {{online}}</span>
-      <span>Khách đang xem: {{watch}}</span>
+      <span>Số người đang online: {{onlineUser}}</span>
+      <span>Khách đang xem: {{watchUser}}</span>
     </div>
     <div style="display: flex;gap: 10px; flex-direction: column">
       <div style="color: darkred; font-size: 30px; text-transform: uppercase" class="no-mobile">Vòng quay may mắn</div>
@@ -161,11 +197,11 @@ onActivated(()=>{
 
       <div style="height: 2px"></div>
 
-      <input type="number" v-show="input" style="margin: 0 30%; height: 25px; border-radius: 25px; padding: 0 10px"/>
+      <input type="number" v-show="input" style="margin: 0 30%; height: 25px; border-radius: 25px; padding: 0 10px" v-model="coinInput"/>
 
       <button v-if="idUser && !input" style="margin: 0 30%; height: 30px;" class="clickable" @click="showInput(true)">Tham gia</button>
       <div v-if="idUser && input" style="display: flex; gap: 20px;justify-content: center;margin: 20px 0">
-        <button style="height: 30px;width: 20%" class="clickable">Tham gia</button>
+        <button style="height: 30px;width: 20%" class="clickable" @click="joinSeasonClient">Tham gia</button>
         <button style="height: 30px;width: 20%" @click="showInput(false)">Đóng</button>
       </div>
 
@@ -173,23 +209,7 @@ onActivated(()=>{
     </div>
   </div>
   <template v-if="!idUser && guide">
-    <div class="clickable" style="backdrop-filter: blur(8px);position: absolute; z-index: 10;top: 0;padding: 20px;font-weight: 700;font-size: 25px;height: 100vh" @click="showGuide(false)">
-      <div style="text-align: center;text-transform: uppercase">Hướng dẫn chơi game</div>
-      <div>
-        <ul>
-          <li>Vòng quay sẽ diễn ra trong vòng 2 phút, khi có 2 người tham gia thờ gian sẽ đếm ngược, khi còn 10s thì người chơi
-            mới sẽ không tham gia được vòng quay mà phải chờ vòng quay tiếp theo</li>
-          <li>Số coin có thể đặt được là: 1,000 coin - 10,000 coin</li>
-          <li>
-            Người chơi chiến thắng sẽ nhận được tổng số coin đã được đặt cược tại vòng sau khi trừ đi phần trăm phí giao dịch ứng với số coin và người tham gia:
-            <ul>
-              <li>Dưới 10 người tham gia, phần trăm sẽ là số người chơi - 1%</li>
-              <li>Trên 10 người tham gia thì phí giao dịch sẽ là 10%</li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-    </div>
+    <guide-panel @show-guide="showGuide"/>
   </template>
 </template>
 

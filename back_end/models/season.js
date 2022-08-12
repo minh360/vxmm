@@ -4,7 +4,7 @@ const seasonSchema = new Schema({
     season: Number,
     timeBegin: Date,
     listJoin: Array,
-    state: Number,
+    state: String,
     coinWin: Number,
     nameWin: String
 });

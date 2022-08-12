@@ -1,26 +1,26 @@
-const Logs = require('../models/season')
+const Log = require('../models/log')
 
-class LogsRepository {
+class LogRepository {
     constructor(model) {
         this.model = model;
     }
     create(object){
-        console.log(this.model.countDocuments())
-        const newLogs = {
+        const newLog = {
             season: object.season,
-            username: object.name,
+            userName: object.userName,
             coinBefore: object.coinBefore,
             coinAfter: object.coinAfter,
+            coinUsed: object.coinUsed
         };
-        const log = new this.model(newLogs);
+        const log = new this.model(newLog);
 
         return log.save();
     }
     findBySeason(season){
         return this.model.findOne({season: season})
     }
-    findByUser(username){
-        return this.model.findOne({username: username})
+    findByUser(userName){
+        return this.model.findOne({username: userName})
     }
 }
-module.exports = new LogsRepository(Logs)
+module.exports = new LogRepository(Log)

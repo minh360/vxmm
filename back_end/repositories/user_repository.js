@@ -6,7 +6,7 @@ class UserRepository {
     }
     create(object){
         const newUser = {
-            username: object.username,
+            userName: object.userName,
             password: object.password,
             coin: 1000000
         };
@@ -14,17 +14,24 @@ class UserRepository {
 
         return user.save();
     }
+    getUser (id) {
+        return this.model.findById(id)
+    }
     checkExist(object){
-        return this.model.findOne({username: object.username})
+        return this.model.findOne({userName: object.userName})
     }
     getCoin(id){
         return this.model.findById(id)
     }
     signIn(object){
         return this.model.findOne({
-            username: object.username,
+            userName: object.userName,
             password: object.password
         })
+    }
+    updateCoin (id,coin){
+        const query = { _id: id };
+        return this.model.findOneAndUpdate(query, { $set: { coin: coin} });
     }
 }
 module.exports = new UserRepository(User)

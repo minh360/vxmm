@@ -3,12 +3,12 @@
     <div class="clickable" @click="router.push('/sign-up')">Sign Up</div>
   </header-panel>
   <SignPanel @check-error="checkError" style="height: 100vh">
-    <div style="color: black">Username</div>
-    <input type="text"   v-model="username" @focusout="checkError"/>
+    <div style="color: black">User Name</div>
+    <input type="text"   v-model="userName" @focusout="checkError"/>
     <div style="color: black">Password</div>
     <input type="password" v-model="password" @focusout="checkError"/>
     <div>{{message}}</div>
-    <button @click="signIn" class="clickable">Sign In</button>
+    <button @click="signInClient" class="clickable">Sign In</button>
     <hr style="width: 100%">
     <div>Don’t have an account? <span style="text-decoration: underline" class="clickable" @click="router.push('/sign-up')">Sign up</span></div>
   </SignPanel>
@@ -17,35 +17,24 @@
 
 <script setup>
 import { ref } from 'vue'
-import axios from "axios";
 import {useRouter} from "vue-router";
 import SignPanel from "@/components/SignPanel";
 import HeaderPanel from "@/components/layouts/HeaderPanel";
+import {signIn} from "../../../../back_end/api";
 const router = useRouter();
-const username = ref('')
+const userName = ref('')
 const password = ref('')
 const message = ref('')
 const checkError = () =>{
-  if(username.value === '')
-    message.value = 'Vui lòng nhập Username!!!'
+  if(userName.value === '')
+    message.value = 'Vui lòng nhập UserName!!!'
   else if(password.value === '')
     message.value = 'Vui lòng nhập Password!!!'
   else message.value = ''
 }
-const signIn = async () => {
+const signInClient = async () => {
   if(message.value === ''){
-    await axios.request({
-      method: "POST",
-      url: "http://localhost:3000/auth/sign_in",
-      headers: {
-        'Authorization': 'token'
-      },
-      data: {
-        username: username.value,
-        password: password.value
-      },
-      timeout: 3000
-    })
+    await signIn(userName.value,password.value)
         .then(user =>{
           clearUser()
           message.value = user.data ? 'Đăng nhập thành công' : 'Đăng nhập thất bại!!! Vui lòng thử lại'
@@ -54,13 +43,13 @@ const signIn = async () => {
             setTimeout(() => router.push({name: 'home'}),1000)
           }
         })
-        .catch((err) =>
+        .catch(err =>
            console.log(err.response.data)
         );
   }
 }
 const clearUser = () =>{
-  username.value =''
+  userName.value =''
   password.value = ''
 }
 </script>
