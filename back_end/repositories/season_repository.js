@@ -6,12 +6,14 @@ class SeasonRepository {
     }
     create(object){
         const newSeason = {
-            season: this.countDocument() + 1,
-            timeBegin: object.time,
+            season: object.season,
+            timeBegin: object.timeBegin,
             listJoin: object.listJoin,
             state: 'PLAYING',
-            coinWin: object.coin,
-            nameWin: object.name
+            coinJoin: 0,
+            coinWin: '',
+            nameWin: '',
+
         };
         const season = new this.model(newSeason);
 
@@ -27,7 +29,13 @@ class SeasonRepository {
         return this.model.findOne({season: season})
     }
     updateBySeason(object){
-        return this.model.findOneAndUpdate({season: object.season}, { $set: {coinWin: object.coin, nameWin: object.name}})
+        return this.model.findOneAndUpdate({season: object.season}, { $set: {
+            coinWin: object.coinWin,
+            nameWin: object.nameWin,
+            state: object.state,
+            listJoin: object.listJoin,
+            coinJoin: object.coinJoin
+        }})
     }
 }
 module.exports = new SeasonRepository(Season)

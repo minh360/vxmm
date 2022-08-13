@@ -1,92 +1,154 @@
-import axios from "axios";
-export async function getUserName (idUser) {
-    return await axios.request({
-        method: "GET",
-        url: "http://localhost:3000/auth/" + idUser,
-        headers: {
-            'Authorization': 'token'
-        },
-        timeout: 1000
-    })
-}
-export async function updateCoin (idUser) {
-    return await axios.request({
-        method: "POST",
-        url: "http://localhost:3000/auth/get_coin/" + idUser,
-        headers: {
-            'Authorization': 'token'
-        },
-        timeout: 1000
-    })
-}
-export async function signIn (userName,password) {
-    return await axios.request({
-        method: "POST",
-        url: "http://localhost:3000/auth/sign_in",
-        headers: {
-            'Authorization': 'token'
-        },
-        data: {
-            userName: userName,
-            password: password
-        },
-        timeout: 1000
-    })
-}
-export async function checkExist (userName,password) {
-    return await axios.request({
-        method: "POST",
-        url: "http://localhost:3000/auth/sign_up/check",
-        headers: {
-            'Authorization': 'token'
-        },
-        data: {
-            userName: userName,
-            password: password
-        },
-        timeout: 1000
-    })
-}
-export function addNewAccount (userName,password) {
-    return axios.request({
-        method: "POST",
-        url: "http://localhost:3000/auth/sign_up",
-        headers: {
-            'Authorization': 'token'
-        },
-        data: {
-            userName: userName,
-            password: password
-        },
-        timeout: 1000
-    })
-}
-export async function checkSeasonPlaying () {
-    return await axios.request({
-        method: "GET",
-        url: "http://localhost:3000/season/checking",
-        headers: {
-            'Authorization': 'token'
+const axios = require('axios')
+module.exports = {
+    getUsername: async function getUsername (idUser) {
+        return await axios.request({
+            method: "GET",
+            url: "http://localhost:3000/auth/" + idUser,
+            headers: {
+                'Authorization': 'token'
+            },
+            timeout: 1000
+        })
+    },
+    getCoin: async function getCoin (idUser) {
+        return await axios.request({
+            method: "POST",
+            url: "http://localhost:3000/auth/get_coin/" + idUser,
+            headers: {
+                'Authorization': 'token'
+            },
+            timeout: 1000
+        })
+    },
+    signIn: async function signIn (username,password) {
+        return await axios.request({
+            method: "POST",
+            url: "http://localhost:3000/auth/sign_in",
+            headers: {
+                'Authorization': 'token'
+            },
+            data: {
+                username: username,
+                password: password
+            },
+            timeout: 1000
+        })
+    },
+    checkExist: async function checkExist (username,password) {
+        return await axios.request({
+            method: "POST",
+            url: "http://localhost:3000/auth/sign_up/check",
+            headers: {
+                'Authorization': 'token'
+            },
+            data: {
+                username: username,
+                password: password
+            },
+            timeout: 1000
+        })
+    },
+    addNewAccount: function addNewAccount (username,password) {
+        return axios.request({
+            method: "POST",
+            url: "http://localhost:3000/auth/sign_up",
+            headers: {
+                'Authorization': 'token'
+            },
+            data: {
+                username: username,
+                password: password
+            },
+            timeout: 1000
+        })
+    },
+    checkSeasonPlaying: async function checkSeasonPlaying () {
+        return await axios.request({
+            method: "GET",
+            url: "http://localhost:3000/season/check_playing",
+            headers: {
+                'Authorization': 'token'
+            }
+        })
+    },
+    checkLastSeason: async function checkLastSeason (season) {
+        return await axios.request({
+            method: "POST",
+            url: "http://localhost:3000/season/check_last",
+            headers: {
+                'Authorization': 'token'
+            },
+            data: {season: season},
+            timeout: 1000
+        })
+    },
+    plusCoin: async function updateCoin(data){
+        await axios.request({
+            method: "PUT",
+            url: "http://localhost:3000/auth/plus_coin/" + data.id,
+            headers: {
+                'Authorization': 'token'
+            },
+            data: {coin: data.coin},
+            timeout: 1000
+        })
+        const dataLog = {
+            season: data.season,
+            username: data.username,
+            coinBefore: data.coinBefore,
+            coinAfter: data.coinBefore + data.coin,
+            coinUsed: "+"+data.coin
         }
-    })
-}
-export async function joinSeason (data) {
-    await axios.request({
-        method: "POST",
-        url: "http://localhost:3000/log/join",
-        headers: {
-            'Authorization': 'token'
-        },
-        data: data,
-        timeout: 1000
-    })
-    return axios.request({
-        method: "PUT",
-        url: "http://localhost:3000/auth/update/" + data.idUser,
-        headers: {
-            'Authorization': 'token'
-        },
-        data: {coin: data.coinAfter},
-        timeout: 1000
-    })
+        return axios.request({
+            method: "POST",
+            url: "http://localhost:3000/log/create",
+            headers: {
+                'Authorization': 'token'
+            },
+            data: dataLog,
+            timeout: 1000
+        })
+    },
+    joinSeason: async function joinSeason (data) {
+        await axios.request({
+            method: "PUT",
+            url: "http://localhost:3000/auth/update_coin/" + data.idUser,
+            headers: {
+                'Authorization': 'token'
+            },
+            data: {coin: data.coinAfter},
+            timeout: 1000
+        })
+        return axios.request({
+            method: "POST",
+            url: "http://localhost:3000/log/create",
+            headers: {
+                'Authorization': 'token'
+            },
+            data: data,
+            timeout: 1000
+        })
+    },
+    createSeason: async function createSeason (data) {
+        return await axios.request({
+            method: "POST",
+            url: "http://localhost:3000/season/create",
+            headers: {
+                'Authorization': 'token'
+            },
+            data: data,
+            timeout: 1000
+        })
+    },
+    updateSeason: async function updateSeason (data){
+        return await axios.request({
+            method: "POST",
+            url: "http://localhost:3000/season/update",
+            headers: {
+                'Authorization': 'token'
+            },
+            data: data,
+            timeout: 1000
+        })
+    }
 }

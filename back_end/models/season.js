@@ -5,7 +5,9 @@ const seasonSchema = new Schema({
     timeBegin: Date,
     listJoin: Array,
     state: String,
+    coinJoin: Number,
     coinWin: Number,
-    nameWin: String
+    nameWin: String,
+
 });
 module.exports = mongoose.model('seasons', seasonSchema);

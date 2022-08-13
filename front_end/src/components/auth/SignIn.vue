@@ -3,8 +3,8 @@
     <div class="clickable" @click="router.push('/sign-up')">Sign Up</div>
   </header-panel>
   <SignPanel @check-error="checkError" style="height: 100vh">
-    <div style="color: black">User Name</div>
-    <input type="text"   v-model="userName" @focusout="checkError"/>
+    <div style="color: black">Username</div>
+    <input type="text"   v-model="username" @focusout="checkError"/>
     <div style="color: black">Password</div>
     <input type="password" v-model="password" @focusout="checkError"/>
     <div>{{message}}</div>
@@ -22,25 +22,29 @@ import SignPanel from "@/components/SignPanel";
 import HeaderPanel from "@/components/layouts/HeaderPanel";
 import {signIn} from "../../../../back_end/api";
 const router = useRouter();
-const userName = ref('')
+const username = ref('')
 const password = ref('')
 const message = ref('')
 const checkError = () =>{
-  if(userName.value === '')
-    message.value = 'Vui lòng nhập UserName!!!'
+  if(username.value === '')
+    message.value = 'Vui lòng nhập Username!!!'
   else if(password.value === '')
     message.value = 'Vui lòng nhập Password!!!'
   else message.value = ''
 }
 const signInClient = async () => {
+  checkError()
   if(message.value === ''){
-    await signIn(userName.value,password.value)
+    await signIn(username.value,password.value)
         .then(user =>{
           clearUser()
           message.value = user.data ? 'Đăng nhập thành công' : 'Đăng nhập thất bại!!! Vui lòng thử lại'
           if(user.data){
             sessionStorage.setItem('id_user',user.data._id)
-            setTimeout(() => router.push({name: 'home'}),1000)
+            setTimeout(() => {
+              router.push({name: 'home'})
+              message.value = ''
+            },1000)
           }
         })
         .catch(err =>
@@ -49,7 +53,7 @@ const signInClient = async () => {
   }
 }
 const clearUser = () =>{
-  userName.value =''
+  username.value =''
   password.value = ''
 }
 </script>

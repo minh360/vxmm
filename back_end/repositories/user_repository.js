@@ -6,32 +6,33 @@ class UserRepository {
     }
     create(object){
         const newUser = {
-            userName: object.userName,
+            username: object.username,
             password: object.password,
-            coin: 1000000
+            coin: object.coin ? object.coin : 100000
         };
         const user = new this.model(newUser);
 
         return user.save();
     }
-    getUser (id) {
+    getUser(id) {
         return this.model.findById(id)
     }
-    checkExist(object){
-        return this.model.findOne({userName: object.userName})
-    }
-    getCoin(id){
-        return this.model.findById(id)
+    checkExist(username){
+        return this.model.findOne({username: username})
     }
     signIn(object){
         return this.model.findOne({
-            userName: object.userName,
+            username: object.username,
             password: object.password
         })
     }
     updateCoin (id,coin){
         const query = { _id: id };
         return this.model.findOneAndUpdate(query, { $set: { coin: coin} });
+    }
+    plusCoin (id,coin){
+        const query = { _id: id };
+        return this.model.findOneAndUpdate(query, { $inc: { coin: coin} });
     }
 }
 module.exports = new UserRepository(User)

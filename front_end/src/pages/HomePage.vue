@@ -1,9 +1,9 @@
 <script setup>
 import HeaderPanel from "@/components/layouts/HeaderPanel";
 import {useRouter} from 'vue-router'
-import {computed, onActivated, ref, watch} from "vue";
+import {computed, onActivated, ref} from "vue";
 import {socket} from "@/main";
-import {joinSeason, updateCoin, checkSeasonPlaying, getUserName} from "../../../back_end/api";
+import {joinSeason, getCoin, checkSeasonPlaying, getUsername, checkLastSeason} from "../../../back_end/api";
 import GuidePanel from "@/components/GuidePanel";
 import dayjs from "dayjs"
 const router = useRouter()
@@ -16,25 +16,24 @@ let seasonAfter
 const coinInput = ref('')
 const coinUser = ref(0)
 const countUserJoin = ref(0)
-const coinWin = ref(0)
+const totalCoins = ref(0)
 const coinJoin = ref(0)
-const lastUserWin = ref('')
+const lastUserWin = ref('Chưa có thông tin')
 const lastCoinWin = ref(0)
 const lastCoinJoin = ref(0)
 
 const idUser = ref('')
-const userName = ref('')
+const username = ref('')
 
-let countDown
 const timeCountDownMilli = ref(0)
 
 const minute = computed(()=>{
   const minute = Math.floor(timeCountDownMilli.value / 1000 / 60 % 60)
-  return minute < 9 ? '0' + minute : minute
+  return minute < 10 ? '0' + minute : minute
 })
 const second = computed(()=>{
   const second = Math.floor(timeCountDownMilli.value / 1000 % 60)
-  return second < 9 ? '0' + second : second
+  return second < 10 ? '0' + second : second
 })
 const logOut = () => {
   sessionStorage.removeItem('id_user')
@@ -72,86 +71,140 @@ const format = number => {
   return result
 }
 const updateTimeClient = async timeBegin => {
-  timeCountDownMilli.value = dayjs(new Date()) - dayjs(timeBegin).add(2, 'minute')
-  console.log(timeCountDownMilli.value)
-  countDown = setInterval(() => timeCountDownMilli.value - 1000, 1000)
+  let countDown
+  timeCountDownMilli.value = dayjs(timeBegin).add(2, 'minute') - dayjs(new Date())
+  if(timeCountDownMilli.value > 0){
+    countDown = setInterval(() => {
+      timeCountDownMilli.value = dayjs(timeBegin).add(2, 'minute') - dayjs(new Date())
+      if(timeCountDownMilli.value <= 0){
+        timeCountDownMilli.value = 0
+        clearInterval(countDown)
+      }
+      else if(second.value % 5 === 0){
+        clearInterval(countDown)
+        checkSeasonGoing()
+      }
+    }, 0)
+  }
 }
-watch(timeCountDownMilli,  (newValue) => {
-  if(newValue <= 0){
-    clearInterval(countDown)
-  }
-  else if(newValue % 5 === 0){
-    clearInterval(countDown)
-    checkSeasonGoing()
-  }
-})
 const updateCoinUser = async () => {
   if(idUser.value)
-    await updateCoin(idUser.value).then(coin => {
+    await getCoin(idUser.value).then(coin => {
       coinUser.value = coin.data
     })
 }
-const percentWin = ref(100)
+const percent = ref(0)
 const stylePercent = computed(() =>{
   return {
     'backgroundColor': 'red',
-    'width': percentWin.value + '%',
+    'width': percent.value + '%',
     'height': "25px",
-    'borderRadius': percentWin.value === 100? '25px' : '25px 0 0 25px',
+    'borderRadius': percent.value === 100? '25px' : '25px 0 0 25px',
     'position': 'relative',
     'transition': 'width 1s'
   }
 })
-
+const checkLastSeasonDone = async () => {
+  let selectedSeason = seasonAfter - 1
+  await checkLastSeason(selectedSeason)
+      .then(season => {
+        lastCoinJoin.value = season.data.coinJoin
+        lastUserWin.value = season.data.nameWin
+        lastCoinWin.value = season.data.coinWin
+      })
+}
 const checkSeasonGoing = async () => {
   await checkSeasonPlaying ()
       .then(season => {
         if(typeof season.data === "number" ){
           timeCountDownMilli.value = 1000 * 60 * 2
           seasonAfter = season.data
+          coinJoin.value = 0
         }
-        else
+        else{
+          coinJoin.value = 0
+          for (const userJoin of season.data.listJoin) {
+              if(username.value === userJoin.username){
+                coinJoin.value += userJoin.coin
+              }
+          }
+          seasonAfter = season.data.season
           updateTimeClient(season.data.timeBegin)
+        }
       })
 }
 const joinSeasonClient = async () => {
-  console.log(userName.value)
-  const data = {
-    idUser: idUser.value,
-    season: seasonAfter,
-    userName: userName.value,
-    coinBefore: coinUser.value,
-    coinUsed: coinInput.value,
-    coinAfter: coinUser.value - coinInput.value
+  if((coinJoin.value + coinInput.value) <= 10000 && ((second.value >= 10 && minute.value === 0) || minute.value !== 0)){
+    const data = {
+      idUser: idUser.value,
+      season: seasonAfter,
+      username: username.value,
+      coinBefore: coinUser.value,
+      coinUsed: '-'+coinInput.value,
+      coinAfter: coinUser.value - coinInput.value
+    }
+    await joinSeason (data)
+        .then(()=> {
+          updateCoinUser()
+          socket.emit('join',({coin: coinInput.value,username: username.value, season: seasonAfter}))
+          coinJoin.value = Number(coinInput.value)
+        })
   }
-  await joinSeason (data)
-      .then(()=> {
-        updateCoinUser()
-        // socket.emit('join',coinInput)
+  else if(timeCountDownMilli.value <= 9000)
+    alert('Vxmm đã được khóa lúc 10s')
+  else
+    alert('Vui lòng đặt theo quy định từ 1.000 coin đến 10.000 coin')
+  coinInput.value = ''
+  showInput(false)
+}
+const getUsernameClient = async () => {
+  await getUsername(idUser.value)
+      .then(user => {
+        username.value = user.data.username
       })
 }
 socket.on('connect', () => {
   updateOnline()
   updateWatch()
+  socket.on('seasonSelect',async data => {
+    countUserJoin.value = data.countUserJoin
+    percent.value = typeof data.percent !== 'number' ? 0 : data.percent
+    totalCoins.value = data.totalCoins
+    coinJoin.value = 0
+    await checkSeasonGoing()
+  })
+  socket.on('reload',()=>{
+    socket.emit('update')
+  })
+  socket.on('updateCoin',async ()=>{
+    await updateCoinUser()
+  })
+  socket.on('sendMessage',data => {
+    message.value = 'Chúc mừng '+ data.nameWin.toUpperCase() +' đã chiến thắng vxmm với số coin thắng là ' + format(data.coinWin)
+  })
+  socket.on('checkLastSeason',async ()=>{
+    percent.value = 0
+    countUserJoin.value = 0
+    totalCoins.value = 0
+    await checkSeasonGoing()
+    await checkLastSeasonDone()
+  })
   socket.on('disconnected', () => {
       socket.emit('disconnectPlay');
       socket.emit('disconnectWatch')
   })
 })
-const getUserNameClient = async () => {
-  await getUserName(idUser.value)
-      .then(user => {
-        userName.value = user.data.userName
-      })
-}
-onActivated(()=>{
+onActivated(async ()=>{
   message.value = 'Chào mừng cô bác đến với trò giải trí này :)))'
-  checkSeasonGoing()
+  await checkSeasonGoing()
+  if (seasonAfter > 0){
+    await checkLastSeasonDone()
+  }
   if(sessionStorage.getItem('id_user')){
     idUser.value = sessionStorage.getItem('id_user')
-    getUserNameClient()
-    socket.emit('signIn',idUser.value)
-    updateCoinUser()
+    await updateCoinUser()
+    await getUsernameClient()
+    socket.emit('signIn',{id: idUser.value,username: username.value})
   }
 })
 </script>
@@ -172,7 +225,9 @@ onActivated(()=>{
     </div>
   </header-panel>
   <div class="content">
-    <marquee>{{message}}</marquee>
+    <div class="marquee">
+      <p>{{message}}</p>
+    </div>
     <div style="display:flex; gap:20px; margin:10px 0; justify-content: center">
       <span>Số người đang online: {{onlineUser}}</span>
       <span>Khách đang xem: {{watchUser}}</span>
@@ -183,16 +238,16 @@ onActivated(()=>{
       <div>Tỉ lệ thắng</div>
       <div class="percent-wrapper">
         <div :style="stylePercent"></div>
-        <div style="position: absolute;margin: -20px 49% 0;color: yellow">{{percentWin}}%</div>
+        <div style="position: absolute;display: flex;justify-content: center;margin-top: -20px;color: yellow;width: 100%">{{percent}} %</div>
       </div>
-      <div>{{coinWin}} coin</div>
+      <div>{{format(totalCoins)}} coin</div>
       <div>Số người tham gia: {{countUserJoin}}</div>
-      <div>Bạn đã tham gia: {{coinJoin}}</div>
+      <div>Bạn đã tham gia: {{format(coinJoin)}}</div>
       <div></div>
       <div style="color: blue;display: flex; gap: 10px; flex-direction: column">
         <div>Người vừa chiến thắng: {{lastUserWin}}</div>
-        <div>Số coin thắng: {{lastCoinWin}}</div>
-        <div>Số coin tham gia: {{lastCoinJoin}}</div>
+        <div>Số coin thắng: {{format(lastCoinWin)}}</div>
+        <div>Số coin tham gia: {{format(lastCoinJoin)}}</div>
       </div>
 
       <div style="height: 2px"></div>
@@ -228,6 +283,25 @@ button{
   font-weight: 700;
   padding: 0 10px;
   height: 25px;
+}
+.marquee {
+  color: black;
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.marquee p {
+  display: inline-block;
+  padding-left: 100%;
+  animation: marquee 15s linear infinite;
+}
+@keyframes marquee {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-100%, 0);
+  }
 }
 .content{
   background-color: linen;

@@ -7,7 +7,7 @@ class LogRepository {
     create(object){
         const newLog = {
             season: object.season,
-            userName: object.userName,
+            username: object.username,
             coinBefore: object.coinBefore,
             coinAfter: object.coinAfter,
             coinUsed: object.coinUsed
@@ -19,8 +19,8 @@ class LogRepository {
     findBySeason(season){
         return this.model.findOne({season: season})
     }
-    findByUser(userName){
-        return this.model.findOne({username: userName})
+    findByUser(username){
+        return this.model.findOne({username: username})
     }
 }
 module.exports = new LogRepository(Log)
