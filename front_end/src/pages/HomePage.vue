@@ -3,15 +3,16 @@ import HeaderPanel from "@/components/layouts/HeaderPanel";
 import {useRouter} from 'vue-router'
 import {computed, onActivated, ref} from "vue";
 import {socket} from "@/main";
-import {joinSeason, getCoin, checkSeasonPlaying, getUsername, checkLastSeason} from "../../../back_end/api";
+import {getCoin, checkSeasonPlaying, getUsername, checkLastSeason, joinSeason} from "../../../back_end/api";
 import GuidePanel from "@/components/GuidePanel";
 import dayjs from "dayjs"
+import AdminClient from '@/components/AdminClient'
 const router = useRouter()
 const onlineUser = ref(0)
 const watchUser = ref(0)
 const message = ref('')
-
-let seasonAfter
+const showClientAdmin = ref(false)
+const seasonAfter = ref('')
 
 const coinInput = ref('')
 const coinUser = ref(0)
@@ -75,7 +76,6 @@ const updateTimeClient = async timeBegin => {
   timeCountDownMilli.value = dayjs(timeBegin).add(2, 'minute') - dayjs(new Date())
   if(timeCountDownMilli.value > 0){
     countDown = setInterval(() => {
-      timeCountDownMilli.value = dayjs(timeBegin).add(2, 'minute') - dayjs(new Date())
       if(timeCountDownMilli.value <= 0){
         timeCountDownMilli.value = 0
         clearInterval(countDown)
@@ -84,6 +84,8 @@ const updateTimeClient = async timeBegin => {
         clearInterval(countDown)
         checkSeasonGoing()
       }
+      else
+        timeCountDownMilli.value = dayjs(timeBegin).add(2, 'minute') - dayjs(new Date())
     }, 0)
   }
 }
@@ -105,7 +107,7 @@ const stylePercent = computed(() =>{
   }
 })
 const checkLastSeasonDone = async () => {
-  let selectedSeason = seasonAfter - 1
+  let selectedSeason = seasonAfter.value - 1
   await checkLastSeason(selectedSeason)
       .then(season => {
         lastCoinJoin.value = season.data.coinJoin
@@ -118,26 +120,36 @@ const checkSeasonGoing = async () => {
       .then(season => {
         if(typeof season.data === "number" ){
           timeCountDownMilli.value = 1000 * 60 * 2
-          seasonAfter = season.data
+          seasonAfter.value = season.data
           coinJoin.value = 0
         }
         else{
+          timeCountDownMilli.value = season.data.timeBegin ? season.data.timeBegin : 1000 * 60 * 2
           coinJoin.value = 0
           for (const userJoin of season.data.listJoin) {
               if(username.value === userJoin.username){
                 coinJoin.value += userJoin.coin
               }
           }
-          seasonAfter = season.data.season
-          updateTimeClient(season.data.timeBegin)
+          seasonAfter.value = season.data.season
+          if(season.data.timeBegin) updateTimeClient(season.data.timeBegin)
         }
       })
 }
 const joinSeasonClient = async () => {
-  if((coinJoin.value + coinInput.value) <= 10000 && ((second.value >= 10 && minute.value === 0) || minute.value !== 0)){
+  let regex = /^\d+$/
+  if(timeCountDownMilli.value <= 9000)
+    alert('Vxmm đã được khóa lúc 10s')
+  else if (coinUser.value - coinJoin.value - coinInput.value < 0)
+    alert('Số coin không đủ chơi')
+  else if(!regex.test(coinInput.value))
+    alert('Vui lòng nhập số đàng hoàng :)))')
+  else if((coinJoin.value + coinInput.value) > 10000)
+    alert('Vui lòng đặt theo quy định từ 1.000 coin đến 10.000 coin')
+  else{
     const data = {
       idUser: idUser.value,
-      season: seasonAfter,
+      season: seasonAfter.value,
       username: username.value,
       coinBefore: coinUser.value,
       coinUsed: '-'+coinInput.value,
@@ -146,14 +158,10 @@ const joinSeasonClient = async () => {
     await joinSeason (data)
         .then(()=> {
           updateCoinUser()
-          socket.emit('join',({coin: coinInput.value,username: username.value, season: seasonAfter}))
+          socket.emit('join',({coin: coinInput.value,username: username.value, season: seasonAfter.value, idUser: idUser.value}))
           coinJoin.value = Number(coinInput.value)
         })
   }
-  else if(timeCountDownMilli.value <= 9000)
-    alert('Vxmm đã được khóa lúc 10s')
-  else
-    alert('Vui lòng đặt theo quy định từ 1.000 coin đến 10.000 coin')
   coinInput.value = ''
   showInput(false)
 }
@@ -161,17 +169,20 @@ const getUsernameClient = async () => {
   await getUsername(idUser.value)
       .then(user => {
         username.value = user.data.username
+        if (username.value === 'ADMIN'){
+          showClientAdmin.value = true
+        }
       })
 }
 socket.on('connect', () => {
   updateOnline()
   updateWatch()
-  socket.on('seasonSelect',async data => {
+  socket.on('seasonSelect',data => {
     countUserJoin.value = data.countUserJoin
     percent.value = typeof data.percent !== 'number' ? 0 : data.percent
     totalCoins.value = data.totalCoins
-    coinJoin.value = 0
-    await checkSeasonGoing()
+    coinJoin.value = data.coinJoin
+    checkSeasonGoing()
   })
   socket.on('reload',()=>{
     socket.emit('update')
@@ -181,6 +192,14 @@ socket.on('connect', () => {
   })
   socket.on('sendMessage',data => {
     message.value = 'Chúc mừng '+ data.nameWin.toUpperCase() +' đã chiến thắng vxmm với số coin thắng là ' + format(data.coinWin)
+  })
+  socket.on('anotherLoginIsYou' , () => {
+    alert('Có người đã đăng nhập vào tài khoản ở thiết bị khác')
+    sessionStorage.removeItem('id_user')
+    location.reload()
+  })
+  socket.on('anotherLogin' ,idClient => {
+    socket.emit('who',idClient)
   })
   socket.on('checkLastSeason',async ()=>{
     percent.value = 0
@@ -197,7 +216,7 @@ socket.on('connect', () => {
 onActivated(async ()=>{
   message.value = 'Chào mừng cô bác đến với trò giải trí này :)))'
   await checkSeasonGoing()
-  if (seasonAfter > 0){
+  if (seasonAfter.value > 0){
     await checkLastSeasonDone()
   }
   if(sessionStorage.getItem('id_user')){
@@ -219,12 +238,13 @@ onActivated(async ()=>{
     </div>
     <div v-else>
       <div style="display: flex;gap: 20px">
-        <span>Số coin: {{format(coinUser)}}</span>
+        <span v-if="!showClientAdmin"> Chào {{username.toUpperCase()}}, coin của bạn: {{format(coinUser)}} coin</span>
+        <span v-else>Chào sếp, chúc sếp ngày tốt lành!!!</span>
         <button class="clickable" @click="logOut">Log out</button>
       </div>
     </div>
   </header-panel>
-  <div class="content">
+  <div class="content" v-if="!showClientAdmin">
     <div class="marquee">
       <p>{{message}}</p>
     </div>
@@ -234,7 +254,8 @@ onActivated(async ()=>{
     </div>
     <div style="display: flex;gap: 10px; flex-direction: column">
       <div style="color: darkred; font-size: 30px; text-transform: uppercase" class="no-mobile">Vòng quay may mắn</div>
-      <div style="color: orange; font-size: 50px"><span v-if="minute > 0">{{minute}}:</span><span>{{second}}</span></div>
+      <div>Season: {{seasonAfter}}</div>
+      <div style="color: orange; font-size: 50px"><span v-show="minute > 0">{{minute}}:</span><span>{{second}}<span v-show="minute <= 0">s</span></span></div>
       <div>Tỉ lệ thắng</div>
       <div class="percent-wrapper">
         <div :style="stylePercent"></div>
@@ -266,6 +287,9 @@ onActivated(async ()=>{
   <template v-if="!idUser && guide">
     <guide-panel @show-guide="showGuide"/>
   </template>
+  <div v-else>
+    <admin-client />
+  </div>
 </template>
 
 <style lang="scss" scoped>

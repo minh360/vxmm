@@ -7,7 +7,7 @@ class SeasonRepository {
     create(object){
         const newSeason = {
             season: object.season,
-            timeBegin: object.timeBegin,
+            timeBegin: '',
             listJoin: object.listJoin,
             state: 'PLAYING',
             coinJoin: 0,
@@ -31,6 +31,7 @@ class SeasonRepository {
     updateBySeason(object){
         return this.model.findOneAndUpdate({season: object.season}, { $set: {
             coinWin: object.coinWin,
+            timeBegin: object.timeBegin,
             nameWin: object.nameWin,
             state: object.state,
             listJoin: object.listJoin,

@@ -20,7 +20,7 @@ class LogRepository {
         return this.model.findOne({season: season})
     }
     findByUser(username){
-        return this.model.findOne({username: username})
+        return this.model.find({username: username})
     }
 }
 module.exports = new LogRepository(Log)

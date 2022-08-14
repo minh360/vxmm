@@ -34,6 +34,7 @@ let timeRemaining
 let countUserJoin = 0
 let countDown
 let season = 0
+let createSeasonDone = false
 const STATE = {
     WATCH: 0,
     PLAYER: 1
@@ -43,6 +44,11 @@ let listConnect = []
 let listJoin = []
 io.on('connection', (socket) => {
     //-------------------methods---------------------------------------------
+    function anotherLogin(id){
+        if(socket.id === id){
+            socket.emit('anotherLoginIsYou')
+        }
+    }
     function findUserWin(){
         let listPercent = []
         let totalCoins = 0
@@ -99,7 +105,7 @@ io.on('connection', (socket) => {
 
             await updateSeason(data)
                 .then(async () => {
-                    const object = listConnect.filter(obj => obj.username === objectWin.nameWin)
+                    const object = listJoin.filter(obj => obj.username === objectWin.nameWin)
                     await getCoin(object[0].idUser)
                         .then(coin => {
                             coinBefore = coin.data
@@ -156,47 +162,78 @@ io.on('connection', (socket) => {
     socket.on('update', () => {
         updateSeasonDetailUser()
     })
-    socket.on('join',obj => {
+    socket.on('join', obj => {
         season = obj.season
-        listJoin.push({username: obj.username,coin: obj.coin})
+        listJoin.push({username: obj.username,coin: obj.coin, idUser: obj.idUser})
         countUserJoin += 1
         let flag = 0
         for (const object of listJoin) {
             if(obj.username === object.username){
                 flag +=1
-                break
             }
         }
         if (flag > 1) countUserJoin -= 1
-        updateSeasonDetailUser('Join')
-        if(countUserJoin === 2){
+        if(!createSeasonDone){
             data = {
-                timeBegin: new Date(),
                 season : obj.season,
                 listJoin: listJoin,
+                state: 'PLAYING',
+                timeBegin: null
             }
             createSeason(data)
                 .then(() => {
+                    createSeasonDone = true
                     console.log('Begin Season',obj.season)
-                    timeBeginSeason = dayjs(data.timeBegin)
-                    countDown = setInterval(updateTime, 0)
-                    updateSeasonDetailUser('Join')
                 })
         }
+        if(countUserJoin === 2){
+            data.timeBegin = new Date()
+            updateSeason(data)
+                .then(() => {
+                    timeBeginSeason = dayjs(data.timeBegin)
+                    countDown = setInterval(updateTime, 0)
+                })
+        }
+        if(countUserJoin > 2){
+            let object = findPercent()
+            data.listJoin = listJoin
+            data.coinWin = object.totalCoins
+            updateSeason(data)
+                .then()
+        }
+        updateSeasonDetailUser('JOIN')
     })
-    socket.on('signIn', async data => {
-        for (let i = 0; i< listConnect.length; i++){
-            if (listConnect[i].idClient === socket.id){
+    socket.on('who', idClient => anotherLogin(idClient))
+    socket.on('signIn', data => {
+        let login = 0
+        let idClient = ''
+        for (let i = 0; i < listConnect.length; i++) {
+            if (listConnect[i].idClient === socket.id) {
                 listConnect[i].state = STATE.PLAYER
                 listConnect[i].idUser = data.id
                 listConnect[i].username = data.username
                 break
             }
         }
-        watch -=1
-        online += 1
-        updateOnline()
-        updateWatch()
+        for (let i = 0; i< listConnect.length; i++){
+            if  (listConnect[i].username === data.username){
+                if(login === 0){
+                    idClient = listConnect[i].idClient
+                }
+                login += 1
+            }
+        }
+        if(login > 1){
+            socket.emit('anotherLogin',idClient)
+            socket.broadcast.emit('anotherLogin',idClient)
+            watch -=1
+        }
+        if(login <= 1){
+            watch -=1
+            online += 1
+            updateOnline()
+            updateWatch()
+        }
         updateSeasonDetailUser()
     })
     socket.on('disconnect',  () => {

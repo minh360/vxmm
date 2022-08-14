@@ -42,7 +42,7 @@ const addNewUser = async () => {
   checkError()
   if(message.value === ''){
     let user_exits
-    await checkExist(username.value,password.value)
+    await checkExist(username.value)
         .then(message => {
           user_exits = message.data
         })

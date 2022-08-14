@@ -34,17 +34,14 @@ module.exports = {
             timeout: 1000
         })
     },
-    checkExist: async function checkExist (username,password) {
+    checkExist: async function checkExist (username) {
         return await axios.request({
             method: "POST",
             url: "http://localhost:3000/auth/sign_up/check",
             headers: {
                 'Authorization': 'token'
             },
-            data: {
-                username: username,
-                password: password
-            },
+            data: {username: username},
             timeout: 1000
         })
     },
@@ -96,7 +93,7 @@ module.exports = {
             season: data.season,
             username: data.username,
             coinBefore: data.coinBefore,
-            coinAfter: data.coinBefore + data.coin,
+            coinAfter: Number(data.coinBefore) + Number(data.coin),
             coinUsed: "+"+data.coin
         }
         return axios.request({
@@ -148,6 +145,17 @@ module.exports = {
                 'Authorization': 'token'
             },
             data: data,
+            timeout: 1000
+        })
+    },
+    getLogs: async function getLogs (username){
+        return await axios.request({
+            method: "POST",
+            url: "http://localhost:3000/log/get",
+            headers: {
+                'Authorization': 'token'
+            },
+            data: {username: username},
             timeout: 1000
         })
     }

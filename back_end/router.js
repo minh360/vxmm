@@ -102,6 +102,12 @@ router.post('/log/create', (req, res) => {
         res.status(200).json(log);
     }).catch(error => console.log(error));
 });
+router.post('/log/get', (req, res) => {
+    const username = req.body.username;
+    log_repository.findByUser(username).then(log => {
+        res.status(200).json(log);
+    }).catch(error => console.log(error));
+});
 
 
 
