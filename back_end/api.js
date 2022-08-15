@@ -20,20 +20,6 @@ module.exports = {
             timeout: 1000
         })
     },
-    signIn: async function signIn (username,password) {
-        return await axios.request({
-            method: "POST",
-            url: "http://localhost:3000/auth/sign_in",
-            headers: {
-                'Authorization': 'token'
-            },
-            data: {
-                username: username,
-                password: password
-            },
-            timeout: 1000
-        })
-    },
     checkExist: async function checkExist (username) {
         return await axios.request({
             method: "POST",

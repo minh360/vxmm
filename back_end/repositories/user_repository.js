@@ -20,12 +20,6 @@ class UserRepository {
     checkExist(username){
         return this.model.findOne({username: username})
     }
-    signIn(object){
-        return this.model.findOne({
-            username: object.username,
-            password: object.password
-        })
-    }
     changeCoin (id,coin){
         const query = { _id: id };
         return this.model.findOneAndUpdate(query, { $inc: { coin: coin} });

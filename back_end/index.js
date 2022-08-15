@@ -2,6 +2,8 @@ const mongoose = require('mongoose')
 const cors = require('cors')
 const bodyParser = require('body-parser')
 const app = require('express')()
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 const jsonParser = bodyParser.json();
 const port = 3000
 
@@ -208,6 +210,16 @@ io.on('connection', (socket) => {
         updateSeasonDetailUser('JOIN')
     })
     socket.on('who', idClient => anotherLogin(idClient))
+    socket.on('encodePassword' , password => {
+        bcrypt.hash(password, saltRounds, function(err, hash) {
+            socket.emit('getPassword', hash)
+        });
+    })
+    socket.on('comparePassword', obj => {
+        bcrypt.compare(obj.passwordEnter, obj.passwordData, function(err, result) {
+            socket.emit('sendResult',result)
+        })
+    })
     socket.on('signIn', data => {
         let login = 0
         let idClient = ''

@@ -21,6 +21,7 @@ import {useRouter} from "vue-router";
 import SignPanel from "@/components/SignPanel";
 import HeaderPanel from "@/components/layouts/HeaderPanel";
 import {checkExist,addNewAccount} from "../../../../back_end/api";
+import {socket} from "@/main";
 
 const router = useRouter();
 const username = ref('')
@@ -51,18 +52,7 @@ const addNewUser = async () => {
         );
     message.value = user_exits ? 'Username đã được đăng ký' : ''
     if(!user_exits){
-      addNewAccount(username.value,password.value)
-          .then(() => {
-            clearUser()
-            message.value = 'Đăng ký thành công'
-            setTimeout(()=>{
-              router.push('/sign-in');
-              message.value = ''
-            },1000)
-          })
-          .catch(err =>
-              console.log(err.response.data)
-          );
+      socket.emit('encodePassword',password.value)
     }
   }
 }
@@ -70,6 +60,20 @@ const clearUser = () =>{
   username.value =''
   password.value = ''
 }
+socket.on('getPassword', password => {
+    addNewAccount(username.value,password)
+        .then(() => {
+          clearUser()
+          message.value = 'Đăng ký thành công'
+          setTimeout(()=>{
+            router.push('/sign-in');
+            message.value = ''
+          },1000)
+        })
+        .catch(err =>
+            console.log(err.response.data)
+        );
+})
 </script>
 
 <style lang="scss" scoped>

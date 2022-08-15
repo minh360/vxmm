@@ -20,11 +20,13 @@ import { ref } from 'vue'
 import {useRouter} from "vue-router";
 import SignPanel from "@/components/SignPanel";
 import HeaderPanel from "@/components/layouts/HeaderPanel";
-import {signIn} from "../../../../back_end/api";
+import {checkExist} from "../../../../back_end/api";
+import {socket} from "@/main";
 const router = useRouter();
 const username = ref('')
 const password = ref('')
 const message = ref('')
+let idUser
 const checkError = () =>{
   if(username.value === '')
     message.value = 'Vui lòng nhập Username!!!'
@@ -35,27 +37,28 @@ const checkError = () =>{
 const signInClient = async () => {
   checkError()
   if(message.value === ''){
-    await signIn(username.value,password.value)
-        .then(user =>{
-          clearUser()
-          message.value = user.data ? 'Đăng nhập thành công' : 'Đăng nhập thất bại!!! Vui lòng thử lại'
-          if(user.data){
-            sessionStorage.setItem('id_user',user.data._id)
-            setTimeout(() => {
-              router.push({name: 'home'})
-              message.value = ''
-            },1000)
-          }
+    await checkExist(username.value)
+        .then(user => {
+          socket.emit('comparePassword', {passwordData: user.data.password, passwordEnter: password.value})
+          idUser = user.data._id
         })
-        .catch(err =>
-           console.log(err.response.data)
-        );
   }
 }
 const clearUser = () =>{
   username.value =''
   password.value = ''
 }
+socket.on('sendResult',result => {
+  message.value = result ? 'Đăng nhập thành công' : 'Đăng nhập thất bại!!! Vui lòng thử lại'
+  if(result){
+    sessionStorage.setItem('id_user',idUser)
+    setTimeout(() => {
+      router.push({name: 'home'})
+      message.value = ''
+    },1000)
+  }
+  clearUser()
+})
 </script>
 
 <style lang="scss" scoped>
