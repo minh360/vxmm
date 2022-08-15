@@ -286,12 +286,12 @@ onActivated(async ()=>{
       <button v-if="!idUser" style="margin: 0 30%;height: 30px" class="clickable" @click="showGuide(true)">Hướng dẫn</button>
     </div>
   </div>
-  <template v-if="!idUser && guide">
-    <guide-panel @show-guide="showGuide"/>
-  </template>
   <div v-else>
     <admin-client />
   </div>
+  <template v-if="!idUser && guide">
+    <guide-panel @show-guide="showGuide"/>
+  </template>
 </template>
 
 <style lang="scss" scoped>
