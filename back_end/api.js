@@ -79,10 +79,10 @@ module.exports = {
             timeout: 1000
         })
     },
-    plusCoin: async function updateCoin(data){
+    changeCoin: async function changeCoin(data){
         await axios.request({
             method: "PUT",
-            url: "http://localhost:3000/auth/plus_coin/" + data.id,
+            url: "http://localhost:3000/auth/change_coin/" + data.id,
             headers: {
                 'Authorization': 'token'
             },
@@ -94,7 +94,7 @@ module.exports = {
             username: data.username,
             coinBefore: data.coinBefore,
             coinAfter: Number(data.coinBefore) + Number(data.coin),
-            coinUsed: "+"+data.coin
+            coinUsed: data.coin
         }
         return axios.request({
             method: "POST",
@@ -109,11 +109,11 @@ module.exports = {
     joinSeason: async function joinSeason (data) {
         await axios.request({
             method: "PUT",
-            url: "http://localhost:3000/auth/update_coin/" + data.idUser,
+            url: "http://localhost:3000/auth/change_coin/" + data.idUser,
             headers: {
                 'Authorization': 'token'
             },
-            data: {coin: data.coinAfter},
+            data: {coin: Number(data.coinUsed)},
             timeout: 1000
         })
         return axios.request({

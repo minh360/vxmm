@@ -39,18 +39,11 @@ router.post('/auth/get_coin/:id', (req, res) => {
         res.status(200).json(user.coin);
     }).catch(error => console.log(error));
 });
-router.put('/auth/update_coin/:id', (req, res) => {
+router.put('/auth/change_coin/:id', (req, res) => {
     const { id } = req.params;
     const coin = req.body.coin;
-    user_repository.updateCoin(id,coin).then(user => {
+    user_repository.changeCoin(id,coin).then(user => {
         res.status(200).json(user.name);
-    }).catch(error => console.log(error));
-});
-router.put('/auth/plus_coin/:id', (req, res) => {
-    const { id } = req.params;
-    const coin = req.body.coin;
-    user_repository.plusCoin(id,coin).then(user => {
-        res.status(200).json(user);
     }).catch(error => console.log(error));
 });
 //-----------------------------------Season-----------------------------------------

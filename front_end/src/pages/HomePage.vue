@@ -158,6 +158,7 @@ const joinSeasonClient = async () => {
     await joinSeason (data)
         .then(()=> {
           updateCoinUser()
+          checkSeasonGoing()
           socket.emit('join',({coin: coinInput.value,username: username.value, season: seasonAfter.value, idUser: idUser.value}))
           coinJoin.value = Number(coinInput.value)
         })
@@ -177,12 +178,12 @@ const getUsernameClient = async () => {
 socket.on('connect', () => {
   updateOnline()
   updateWatch()
-  socket.on('seasonSelect',data => {
+  socket.on('seasonSelect', async data => {
     countUserJoin.value = data.countUserJoin
     percent.value = typeof data.percent !== 'number' ? 0 : data.percent
     totalCoins.value = data.totalCoins
     coinJoin.value = data.coinJoin
-    checkSeasonGoing()
+    await checkSeasonGoing()
   })
   socket.on('reload',()=>{
     socket.emit('update')
@@ -205,6 +206,7 @@ socket.on('connect', () => {
     percent.value = 0
     countUserJoin.value = 0
     totalCoins.value = 0
+    await updateCoinUser()
     await checkSeasonGoing()
     await checkLastSeasonDone()
   })

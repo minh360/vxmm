@@ -26,11 +26,7 @@ class UserRepository {
             password: object.password
         })
     }
-    updateCoin (id,coin){
-        const query = { _id: id };
-        return this.model.findOneAndUpdate(query, { $set: { coin: coin} });
-    }
-    plusCoin (id,coin){
+    changeCoin (id,coin){
         const query = { _id: id };
         return this.model.findOneAndUpdate(query, { $inc: { coin: coin} });
     }

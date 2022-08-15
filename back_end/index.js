@@ -5,7 +5,7 @@ const app = require('express')()
 const jsonParser = bodyParser.json();
 const port = 3000
 
-mongoose.connect('mongodb://localhost:27017/vxmm')
+mongoose.connect('mongodb+srv://admin:594437@cluster0.24jdyrf.mongodb.net/vxmm')
 
 const db = mongoose.connection;
 const router = require('./router')
@@ -26,7 +26,7 @@ const io = require('socket.io')(server, {
         methods: ["GET", "POST", "PUT"]
     }
 });
-const {createSeason, updateSeason, plusCoin, getCoin} = require('./api')
+const {createSeason, updateSeason, changeCoin, getCoin} = require('./api')
 let online = 0
 let watch = 0
 let timeBeginSeason
@@ -35,6 +35,7 @@ let countUserJoin = 0
 let countDown
 let season = 0
 let createSeasonDone = false
+let circle = 0
 const STATE = {
     WATCH: 0,
     PLAYER: 1
@@ -110,7 +111,7 @@ io.on('connection', (socket) => {
                         .then(coin => {
                             coinBefore = coin.data
                         })
-                    await plusCoin({coin: objectWin.coinWin, id: object[0].idUser, season: season, coinBefore: coinBefore, username: objectWin.nameWin})
+                    await changeCoin({coin: objectWin.coinWin, id: object[0].idUser, season: season, coinBefore: coinBefore, username: objectWin.nameWin})
                         .then(()=> {
                             if(socket.id === object[0].idClient){
                                 socket.emit('updateCoin')
@@ -122,6 +123,8 @@ io.on('connection', (socket) => {
                     listJoin = []
                     timeBeginSeason = ''
                     countUserJoin = 0
+                    createSeasonDone = false
+                    circle = 0
                     socket.emit('checkLastSeason')
                     socket.broadcast.emit('checkLastSeason')
                     console.log('End season',season)
@@ -172,7 +175,9 @@ io.on('connection', (socket) => {
                 flag +=1
             }
         }
-        if (flag > 1) countUserJoin -= 1
+        if (flag > 1) {
+            countUserJoin -= 1
+        }
         if(!createSeasonDone){
             data = {
                 season : obj.season,
@@ -186,21 +191,20 @@ io.on('connection', (socket) => {
                     console.log('Begin Season',obj.season)
                 })
         }
-        if(countUserJoin === 2){
+        if(countUserJoin === 2 && circle === 0){
             data.timeBegin = new Date()
             updateSeason(data)
                 .then(() => {
+                    circle += 1
                     timeBeginSeason = dayjs(data.timeBegin)
                     countDown = setInterval(updateTime, 0)
                 })
         }
-        if(countUserJoin > 2){
-            let object = findPercent()
-            data.listJoin = listJoin
-            data.coinWin = object.totalCoins
-            updateSeason(data)
-                .then()
-        }
+        let object = findPercent()
+        data.listJoin = listJoin
+        data.coinWin = object.totalCoins
+        updateSeason(data)
+            .then()
         updateSeasonDetailUser('JOIN')
     })
     socket.on('who', idClient => anotherLogin(idClient))
