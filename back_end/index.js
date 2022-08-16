@@ -10,7 +10,7 @@ const saltRounds = 10;
 const jsonParser = bodyParser.json();
 const port = process.env.PORT || 3000
 
-mongoose.connect('mongodb+srv://admin:594437@cluster0.24jdyrf.mongodb.net/vxmm')
+mongoose.connect('mongodb://localhost:27017/vxmm')
 
 const db = mongoose.connection;
 const router = require('./router')
@@ -22,14 +22,11 @@ db.once('open', function(){
 app.use(cors())
 app.use(jsonParser);
 app.use('/', router);
-app.use('/', serveStatic(path.join(__dirname, '/public')))
-app.get(/.*/, function (req, res) {
-    res.sendFile(path.join(__dirname, '/public/index.html'))
-})
-var server = require("http").Server(app)
-const io = require("socket.io")(server, {
+
+const server = app.listen(port)
+const io = require('socket.io')(server, {
     cors: {
-        origin: "https://vxmm.herokuapp.com",
+        origin: "http://localhost:8080",
         methods: ["GET", "POST", "PUT"]
     }
 });
@@ -278,5 +275,3 @@ io.on('connection', (socket) => {
         }
     });
 });
-
-server.listen(port)
