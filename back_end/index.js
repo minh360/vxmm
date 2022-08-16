@@ -1,11 +1,14 @@
 const mongoose = require('mongoose')
 const cors = require('cors')
 const bodyParser = require('body-parser')
-const app = require('express')()
+const express = require('express')
+const app = express()
+const serveStatic = require('serve-static')
+const path = require('path')
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const jsonParser = bodyParser.json();
-const port = 3000
+const port = process.env.PORT || 3000
 
 mongoose.connect('mongodb+srv://admin:594437@cluster0.24jdyrf.mongodb.net/vxmm')
 
@@ -19,12 +22,14 @@ db.once('open', function(){
 app.use(cors())
 app.use(jsonParser);
 app.use('/', router);
-
-const server = app.listen(port  )
-
-const io = require('socket.io')(server, {
+app.use('/', serveStatic(path.join(__dirname, '/public')))
+app.get(/.*/, function (req, res) {
+    res.sendFile(path.join(__dirname, '/public/index.html'))
+})
+var server = require("http").Server(app)
+const io = require("socket.io")(server, {
     cors: {
-        origin: "http://localhost:8080",
+        origin: "https://vxmm.herokuapp.com",
         methods: ["GET", "POST", "PUT"]
     }
 });
@@ -32,7 +37,7 @@ const {createSeason, updateSeason, changeCoin, getCoin} = require('./api')
 let online = 0
 let watch = 0
 let timeBeginSeason
-let timeRemaining
+let timeRemaining = 1000 * 60 * 2
 let countUserJoin = 0
 let countDown
 let season = 0
@@ -127,6 +132,7 @@ io.on('connection', (socket) => {
                     countUserJoin = 0
                     createSeasonDone = false
                     circle = 0
+                    timeRemaining = 1000 * 60 * 2
                     socket.emit('checkLastSeason')
                     socket.broadcast.emit('checkLastSeason')
                     console.log('End season',season)
@@ -166,6 +172,9 @@ io.on('connection', (socket) => {
     //---------------------------------------------------
     socket.on('update', () => {
         updateSeasonDetailUser()
+    })
+    socket.on('getTime', () => {
+        socket.emit('sendTime',timeRemaining)
     })
     socket.on('join', obj => {
         season = obj.season
@@ -269,3 +278,5 @@ io.on('connection', (socket) => {
         }
     });
 });
+
+server.listen(port)

@@ -137,14 +137,17 @@ const checkSeasonGoing = async () => {
       })
 }
 const joinSeasonClient = async () => {
+  let coinInputClient = coinInput.value
+  coinInput.value = ''
+  showInput(false)
   let regex = /^\d+$/
   if(timeCountDownMilli.value <= 9000)
     alert('Vxmm đã được khóa lúc 10s')
-  else if (coinUser.value - coinJoin.value - coinInput.value < 0)
+  else if (coinUser.value - coinJoin.value - coinInputClient < 0)
     alert('Số coin không đủ chơi')
-  else if(!regex.test(coinInput.value))
+  else if(!regex.test(coinInputClient))
     alert('Vui lòng nhập số đàng hoàng :)))')
-  else if((coinJoin.value + coinInput.value) > 10000 || coinInput.value < 1000)
+  else if((coinJoin.value + coinInputClient) > 10000 || coinInputClient < 1000)
     alert('Vui lòng đặt theo quy định từ 1.000 coin đến 10.000 coin')
   else{
     const data = {
@@ -152,19 +155,17 @@ const joinSeasonClient = async () => {
       season: seasonAfter.value,
       username: username.value,
       coinBefore: coinUser.value,
-      coinUsed: '-'+coinInput.value,
-      coinAfter: coinUser.value - coinInput.value
+      coinUsed: '-'+coinInputClient,
+      coinAfter: coinUser.value - coinInputClient
     }
     await joinSeason (data)
         .then(()=> {
           updateCoinUser()
           checkSeasonGoing()
-          socket.emit('join',({coin: coinInput.value,username: username.value, season: seasonAfter.value, idUser: idUser.value}))
-          coinJoin.value = Number(coinInput.value)
+          socket.emit('join',({coin: coinInputClient,username: username.value, season: seasonAfter.value, idUser: idUser.value}))
+          coinJoin.value = Number(coinInputClient)
         })
   }
-  coinInput.value = ''
-  showInput(false)
 }
 const getUsernameClient = async () => {
   await getUsername(idUser.value)
