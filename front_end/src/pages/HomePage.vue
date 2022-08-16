@@ -124,7 +124,7 @@ const checkSeasonGoing = async () => {
           coinJoin.value = 0
         }
         else{
-          timeCountDownMilli.value = season.data.timeBegin ? season.data.timeBegin : 1000 * 60 * 2
+          socket.emit('getTime')
           coinJoin.value = 0
           for (const userJoin of season.data.listJoin) {
               if(username.value === userJoin.username){
@@ -144,7 +144,7 @@ const joinSeasonClient = async () => {
     alert('Số coin không đủ chơi')
   else if(!regex.test(coinInput.value))
     alert('Vui lòng nhập số đàng hoàng :)))')
-  else if((coinJoin.value + coinInput.value) > 10000)
+  else if((coinJoin.value + coinInput.value) > 10000 || coinInput.value < 1000)
     alert('Vui lòng đặt theo quy định từ 1.000 coin đến 10.000 coin')
   else{
     const data = {
@@ -201,6 +201,9 @@ socket.on('connect', () => {
   })
   socket.on('anotherLogin' ,idClient => {
     socket.emit('who',idClient)
+  })
+  socket.on('sendTime', time => {
+    timeCountDownMilli.value = time
   })
   socket.on('checkLastSeason',async ()=>{
     percent.value = 0
